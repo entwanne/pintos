@@ -1,9 +1,11 @@
 #include "userprog/syscall.h"
 #include <stdio.h>
 #include <syscall-nr.h>
+#include <stdarg.h>
 #include "threads/interrupt.h"
 #include "threads/thread.h"
 #include "threads/init.h"
+#include "threads/vaddr.h"
 
 static void syscall_handler (struct intr_frame *);
 
@@ -14,9 +16,44 @@ syscall_init (void)
 }
 
 
+#define GET_PARAM(ap, esp, type) *va_arg(ap, type*) = *((type*)esp); \
+  esp += sizeof(type)
+
+static void extract_params(struct intr_frame* f, const char* format, ...)
+{
+  va_list ap;
+  va_start(ap, format);
+  char *esp = (char*) f->esp + sizeof(int);
+  while (format && *format) {
+    switch (*format) {
+    case 'i':
+      GET_PARAM(ap, esp, int);
+      break;
+    case 'u':
+      GET_PARAM(ap, esp, unsigned int);
+      break;
+    case 's':
+      if (!is_user_vaddr(*(void**)esp))
+	; // SEGV
+      GET_PARAM(ap, esp, char*);
+      break;
+    }
+    format++;
+  }
+  va_end(ap);
+}
+
 static void halt_handler(struct intr_frame *f UNUSED)
 {
   power_off();
+}
+
+static void create_handler(struct intr_frame *f)
+{
+  char* filename;
+  unsigned int size;
+  extract_params(f, "su", &filename, &size);
+  printf("CREATE '%s' %u\n", filename, size);
 }
 
 typedef void(*handler_t)(struct intr_frame*);
@@ -26,7 +63,7 @@ static handler_t handlers[] = {
   NULL, /* SYS_EXIT */
   NULL, /* SYS_EXEC */
   NULL, /* SYS_WAIT */
-  NULL, /* SYS_CREATE */
+  create_handler, /* SYS_CREATE */
   NULL, /* SYS_REMOVE */
   NULL, /* SYS_OPEN */
   NULL, /* SYS_FILESIZE */
