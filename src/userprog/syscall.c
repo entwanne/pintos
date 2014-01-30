@@ -6,6 +6,7 @@
 #include "threads/thread.h"
 #include "threads/init.h"
 #include "threads/vaddr.h"
+#include "filesys/filesys.h"
 
 static void syscall_handler (struct intr_frame *);
 
@@ -53,7 +54,8 @@ static void create_handler(struct intr_frame *f)
   char* filename;
   unsigned int size;
   extract_params(f, "su", &filename, &size);
-  printf("CREATE '%s' %u\n", filename, size);
+  /* printf("CREATE '%s' %u\n", filename, size); */
+  filesys_create(filename, size);
 }
 
 typedef void(*handler_t)(struct intr_frame*);
