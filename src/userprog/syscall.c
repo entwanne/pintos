@@ -20,7 +20,7 @@ syscall_init (void)
 #define GET_PARAM(ap, esp, type) *va_arg(ap, type*) = *((type*)esp); \
   esp += sizeof(type)
 
-static void extract_params(struct intr_frame* f, const char* format, ...)
+void extract_params(struct intr_frame* f, const char* format, ...)
 {
   va_list ap;
   va_start(ap, format);
@@ -32,6 +32,9 @@ static void extract_params(struct intr_frame* f, const char* format, ...)
       break;
     case 'u':
       GET_PARAM(ap, esp, unsigned int);
+      break;
+    case 'p':
+      GET_PARAM(ap, esp, void *);
       break;
     case 's':
       if (!is_user_vaddr(*(void**)esp))
@@ -58,6 +61,10 @@ static void create_handler(struct intr_frame *f)
   filesys_create(filename, size);
 }
 
+// Implemented in syscall_io.c
+extern void write_handler(struct intr_frame * f);
+extern void open_handler(struct intr_frame * f);
+
 typedef void(*handler_t)(struct intr_frame*);
 
 static handler_t handlers[] = {
@@ -67,10 +74,10 @@ static handler_t handlers[] = {
   NULL, /* SYS_WAIT */
   create_handler, /* SYS_CREATE */
   NULL, /* SYS_REMOVE */
-  NULL, /* SYS_OPEN */
+  open_handler, /* SYS_OPEN */
   NULL, /* SYS_FILESIZE */
   NULL, /* SYS_READ */
-  NULL, /* SYS_WRITE */
+  write_handler, /* SYS_WRITE */
   NULL, /* SYS_SEEK */
   NULL, /* SYS_TELL */
   NULL, /* SYS_CLOSE */

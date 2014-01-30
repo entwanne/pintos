@@ -17,6 +17,7 @@
 #include "threads/palloc.h"
 #include "threads/thread.h"
 #include "threads/vaddr.h"
+#include "threads/malloc.h"
 
 static thread_func start_process NO_RETURN;
 static bool load (const char *cmdline, void (**eip) (void), void **esp);
@@ -66,6 +67,12 @@ start_process (void *file_name_)
   if (!success) 
     thread_exit ();
 
+  struct thread * thr = thread_current();
+  thr->fds = malloc(sizeof(void *) * MAX_FDS);
+  if (!thr->fds)
+    thread_exit(); // TODO: liberate above ressources ?
+  memset(thr->fds, 0, sizeof(void *) * MAX_FDS);
+
   /* Start the user process by simulating a return from an
      interrupt, implemented by intr_exit (in
      threads/intr-stubs.S).  Because intr_exit takes all of its
@@ -99,6 +106,8 @@ process_exit (void)
 {
   struct thread *cur = thread_current ();
   uint32_t *pd;
+
+  free(cur->fds);
 
   /* Destroy the current process's page directory and switch back
      to the kernel-only page directory. */
