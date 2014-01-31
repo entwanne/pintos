@@ -2,9 +2,7 @@
 #include <stdio.h>
 #include <syscall-nr.h>
 #include <stdarg.h>
-#include "threads/interrupt.h"
 #include "threads/thread.h"
-#include "threads/init.h"
 #include "threads/vaddr.h"
 #include "filesys/filesys.h"
 #include "userprog/syscall_handlers.h"
@@ -48,11 +46,6 @@ void extract_params(struct intr_frame* f, const char* format, ...)
     format++;
   }
   va_end(ap);
-}
-
-static void halt_handler(struct intr_frame *f UNUSED)
-{
-  power_off();
 }
 
 typedef void(*handler_t)(struct intr_frame*);
