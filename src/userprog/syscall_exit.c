@@ -1,4 +1,5 @@
 #include "threads/init.h"
+#include "userprog/process.h"
 #include "userprog/syscall_handlers.h"
 
 void exit_handler(struct intr_frame *f) {
