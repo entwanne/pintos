@@ -63,7 +63,7 @@ static handler_t handlers[] = {
   write_handler, /* SYS_WRITE */
   NULL, /* SYS_SEEK */
   NULL, /* SYS_TELL */
-  NULL, /* SYS_CLOSE */
+  close_handler, /* SYS_CLOSE */
   NULL, /* SYS_MMAP */
   NULL, /* SYS_MUNMAP */
   NULL, /* SYS_CHDIR */

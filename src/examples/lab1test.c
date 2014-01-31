@@ -62,6 +62,8 @@ int main(void)
     printf("Did not read 10 characters from the console.\n");
     halt();
   }
+  write(STDOUT_FILENO, "->", 2);
+  write(STDOUT_FILENO, sbuf, num_bytes_read);
 	
   write(STDOUT_FILENO, test2, strlen(test2));
   write(file[0], test3, strlen(test3));
@@ -103,5 +105,6 @@ int main(void)
   }
 
   printf("Test passed\n");
+  exit(1);
   halt();
 }
