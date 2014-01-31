@@ -72,6 +72,7 @@ start_process (void *file_name_)
   if (!thr->fds)
     thread_exit(); // TODO: liberate above ressources ?
   memset(thr->fds, 0, sizeof(void *) * MAX_FDS);
+  thr->low_fd = 0;
 
   /* Start the user process by simulating a return from an
      interrupt, implemented by intr_exit (in

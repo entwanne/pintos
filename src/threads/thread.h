@@ -96,6 +96,7 @@ struct thread
     /* Owned by userprog/process.c. */
     uint32_t *pagedir;                  /* Page directory. */
     struct file ** fds;
+    int low_fd;
 #endif
 
     /* Owned by thread.c. */

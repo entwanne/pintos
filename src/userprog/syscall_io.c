@@ -27,8 +27,8 @@ void open_handler(struct intr_frame * f) {
 
   if (_fname == NULL) SYSRETURN(-1);
 
-  int _fd = 0;
   struct thread * thr = thread_current();
+  int _fd = thr->low_fd;
 
   while (thr->fds[_fd] && _fd < MAX_FDS)
     ++_fd;
@@ -53,6 +53,9 @@ void close_handler(struct intr_frame * f) {
   struct thread * _thr = thread_current();
   struct file * _file = _thr->fds[_fd];
   if (_file == NULL) SYSRETURN(-1);
+
+  if (thr->low_fd > _fd)
+    thr->low_fd = _fd;
 
   file_close(_file);
   SYSRETURN(0);
