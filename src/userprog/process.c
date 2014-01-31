@@ -108,6 +108,7 @@ process_exit (void)
   uint32_t *pd;
 
   free(cur->fds);
+  cur->fds = NULL;
 
   /* Destroy the current process's page directory and switch back
      to the kernel-only page directory. */
