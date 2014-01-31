@@ -15,5 +15,6 @@ void halt_handler(struct intr_frame *f);
 void create_handler(struct intr_frame * f);
 void open_handler(struct intr_frame * f);
 void write_handler(struct intr_frame * f);
+void read_handler(struct intr_frame * f);
 
 #endif
