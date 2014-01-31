@@ -108,11 +108,13 @@ process_exit (void)
   struct thread *cur = thread_current ();
   uint32_t *pd;
 
-  int i = 0;
-  for (; i < MAX_FDS; ++i) {
-    if (cur->fds[i]) {
-      file_close(cur->fds[i]);
-      cur->fds[i] = NULL;
+  if (cur->fds != NULL) {
+    int i = 0;
+    for (; i < MAX_FDS; ++i) {
+      if (cur->fds[i]) {
+	file_close(cur->fds[i]);
+	cur->fds[i] = NULL;
+      }
     }
   }
   free(cur->fds);
