@@ -19,7 +19,7 @@ syscall_init (void)
 #define GET_PARAM(ap, esp, type) *va_arg((ap), type*) = *((type*)(esp)); \
   (esp) += sizeof(type)
 
-#define CHECK_PTR(esp) if (!is_user_vaddr(*(void**)(esp)))
+#define CHECK_PTR(esp) if (!is_user_vaddr(*(void**)(esp))) // SEGV
 
 void extract_params(struct intr_frame* f, const char* format, ...)
 {
@@ -59,7 +59,7 @@ static handler_t handlers[] = {
   NULL, /* SYS_REMOVE */
   open_handler, /* SYS_OPEN */
   NULL, /* SYS_FILESIZE */
-  NULL, /* SYS_READ */
+  read_handler, /* SYS_READ */
   write_handler, /* SYS_WRITE */
   NULL, /* SYS_SEEK */
   NULL, /* SYS_TELL */

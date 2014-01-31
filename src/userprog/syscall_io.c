@@ -8,6 +8,8 @@
 #include "threads/vaddr.h"
 #include "filesys/filesys.h"
 #include "kernel/stdio.h"
+#include "devices/input.h"
+#include "filesys/file.h"
 #include "userprog/process.h"
 #include "userprog/syscall_handlers.h"
 
@@ -75,6 +77,35 @@ void write_handler(struct intr_frame * f) {
     if (_file == NULL) SYSRETURN(-1);
 
     _size = file_write(_file, _buf, _size);
+    SYSRETURN(_size);
+  }
+}
+
+void read_handler(struct intr_frame *f) {
+  int _fd;
+  void * _buf;
+  size_t _size;
+  extract_params(f, "ipu", &_fd, &_buf, &_size);
+
+  if (_fd < 0 || _fd >= MAX_FDS) SYSRETURN(-1);
+  if (_fd == STDOUT_FILENO) SYSRETURN(-1); // No read from stdout
+  if (_fd == STDIN_FILENO) {
+    uint8_t c;
+    size_t i;
+    for (i = 0; i < _size; ++i) {
+      c = input_getc();
+      /* input_putc(c); */
+      putbuf(&c, 1);
+      ((uint8_t*) _buf)[i] = c;
+    }
+    SYSRETURN(i);
+  } else {
+    struct thread * thr = thread_current();
+    struct file * _file;
+    _fd -= 2;
+    _file = thr->fds[_fd];
+    if (_file == NULL) SYSRETURN(-1);
+    _size = file_read(_file, _buf, _size);
     SYSRETURN(_size);
   }
 }
