@@ -52,8 +52,8 @@ typedef void(*handler_t)(struct intr_frame*);
 
 static handler_t handlers[] = {
   halt_handler, /* SYS_HALT */
-  NULL, /* SYS_EXIT */
-  exit_handler, /* SYS_EXEC */
+  exit_handler, /* SYS_EXIT */
+  NULL, /* SYS_EXEC */
   NULL, /* SYS_WAIT */
   create_handler, /* SYS_CREATE */
   NULL, /* SYS_REMOVE */
