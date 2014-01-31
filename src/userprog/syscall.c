@@ -7,6 +7,7 @@
 #include "threads/init.h"
 #include "threads/vaddr.h"
 #include "filesys/filesys.h"
+#include "userprog/syscall_handlers.h"
 
 static void syscall_handler (struct intr_frame *);
 
@@ -17,8 +18,10 @@ syscall_init (void)
 }
 
 
-#define GET_PARAM(ap, esp, type) *va_arg(ap, type*) = *((type*)esp); \
-  esp += sizeof(type)
+#define GET_PARAM(ap, esp, type) *va_arg((ap), type*) = *((type*)(esp)); \
+  (esp) += sizeof(type)
+
+#define CHECK_PTR(esp) if (!is_user_vaddr(*(void**)(esp)))
 
 void extract_params(struct intr_frame* f, const char* format, ...)
 {
@@ -34,11 +37,11 @@ void extract_params(struct intr_frame* f, const char* format, ...)
       GET_PARAM(ap, esp, unsigned int);
       break;
     case 'p':
+      CHECK_PTR(esp);
       GET_PARAM(ap, esp, void *);
       break;
     case 's':
-      if (!is_user_vaddr(*(void**)esp))
-	; // SEGV
+      CHECK_PTR(esp);
       GET_PARAM(ap, esp, char*);
       break;
     }
@@ -51,19 +54,6 @@ static void halt_handler(struct intr_frame *f UNUSED)
 {
   power_off();
 }
-
-static void create_handler(struct intr_frame *f)
-{
-  char* filename;
-  unsigned int size;
-  extract_params(f, "su", &filename, &size);
-  /* printf("CREATE '%s' %u\n", filename, size); */
-  filesys_create(filename, size);
-}
-
-// Implemented in syscall_io.c
-extern void write_handler(struct intr_frame * f);
-extern void open_handler(struct intr_frame * f);
 
 typedef void(*handler_t)(struct intr_frame*);
 

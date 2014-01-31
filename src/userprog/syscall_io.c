@@ -9,25 +9,14 @@
 #include "filesys/filesys.h"
 #include "kernel/stdio.h"
 #include "userprog/process.h"
+#include "userprog/syscall_handlers.h"
 
-#define SYSRETURN(c) { f->eax = c; return; }
-
-void extract_params(struct intr_frame * f, const char * format, ...);
-
-void write_handler(struct intr_frame * f) {
-  int _fd;
-  void * _buf;
-  size_t _size;
-  extract_params(f, "ipu", &_fd, &_buf, &_size);
-
-  if (_fd == STDIN_FILENO) SYSRETURN(-1) // No write to stdin
-  if (_fd == STDOUT_FILENO) {
-    putbuf((char const *)_buf, _size);
-    SYSRETURN(_size);
-  } else {
-    // TODO
-    SYSRETURN(-1);
-  }
+void create_handler(struct intr_frame *f)
+{
+  char* filename;
+  unsigned int size;
+  extract_params(f, "su", &filename, &size);
+  filesys_create(filename, size);
 }
 
 void open_handler(struct intr_frame * f) {
@@ -48,6 +37,23 @@ void open_handler(struct intr_frame * f) {
   if (_file == NULL)
     SYSRETURN(-1);
 
-  thr->fds[_fd] = (void *)_file;
+  thr->fds[_fd] = _file;
   SYSRETURN(_fd + 2);
+}
+
+void write_handler(struct intr_frame * f) {
+  int _fd;
+  void * _buf;
+  size_t _size;
+  extract_params(f, "ipu", &_fd, &_buf, &_size);
+
+  if (_fd == STDIN_FILENO) SYSRETURN(-1) // No write to stdin
+  if (_fd == STDOUT_FILENO) {
+    putbuf((char const *)_buf, _size);
+    SYSRETURN(_size);
+  } else {
+    _fd -= 2;
+    // TODO
+    SYSRETURN(-1);
+  }
 }
