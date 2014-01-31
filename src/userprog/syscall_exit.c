@@ -7,6 +7,5 @@ void exit_handler(struct intr_frame *f) {
   extract_params(f, "i", &_code);
   (void)_code;
 
-  process_exit();
   thread_exit();
 }

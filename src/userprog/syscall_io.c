@@ -15,15 +15,16 @@
 
 void create_handler(struct intr_frame *f)
 {
-  char* filename;
+  char const* filename;
   unsigned int size;
   extract_params(f, "su", &filename, &size);
-  filesys_create(filename, size);
+  bool ret = filesys_create(filename, size);
+  SYSRETURN(!ret);
 }
 
 void open_handler(struct intr_frame * f) {
   char const * _fname;
-  extract_params(f, "p", &_fname);
+  extract_params(f, "s", &_fname);
 
   if (_fname == NULL) SYSRETURN(-1);
 
@@ -40,6 +41,7 @@ void open_handler(struct intr_frame * f) {
     SYSRETURN(-1);
 
   thr->fds[_fd] = _file;
+  thr->low_fd++;
   SYSRETURN(_fd + 2);
 }
 
@@ -58,6 +60,7 @@ void close_handler(struct intr_frame * f) {
     _thr->low_fd = _fd;
 
   file_close(_file);
+  _thr->fds[_fd] = NULL;
   SYSRETURN(0);
 }
 
@@ -97,7 +100,6 @@ void read_handler(struct intr_frame *f) {
     size_t i;
     for (i = 0; i < _size; ++i) {
       c = input_getc();
-      /* input_putc(c); */
       putbuf(&c, 1);
       ((uint8_t*) _buf)[i] = c;
     }

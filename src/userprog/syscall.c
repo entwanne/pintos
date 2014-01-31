@@ -19,7 +19,7 @@ syscall_init (void)
 #define GET_PARAM(ap, esp, type) *va_arg((ap), type*) = *((type*)(esp)); \
   (esp) += sizeof(type)
 
-#define CHECK_PTR(esp) if (!is_user_vaddr(*(void**)(esp))) // SEGV
+#define CHECK_PTR(esp) if (!is_user_vaddr(*(void**)(esp))) {} // SEGV
 
 void extract_params(struct intr_frame* f, const char* format, ...)
 {
@@ -35,12 +35,9 @@ void extract_params(struct intr_frame* f, const char* format, ...)
       GET_PARAM(ap, esp, unsigned int);
       break;
     case 'p':
-      CHECK_PTR(esp);
-      GET_PARAM(ap, esp, void *);
-      break;
     case 's':
       CHECK_PTR(esp);
-      GET_PARAM(ap, esp, char*);
+      GET_PARAM(ap, esp, void*);
       break;
     }
     format++;
