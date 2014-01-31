@@ -41,6 +41,21 @@ void open_handler(struct intr_frame * f) {
   SYSRETURN(_fd + 2);
 }
 
+void close_handler(struct intr_frame * f) {
+  int _fd;
+  extract_params(f, "i", &_fd);
+
+  _fd -= 2;
+  if (_fd < 0 || _fd > MAX_FDS) SYSRETURN(-1);
+
+  struct thread * _thr = thread_current();
+  struct file * _file = _thr->fds[_fd];
+  if (_file == NULL) SYSRETURN(-1);
+
+  file_close(_file);
+  SYSRETURN(0);
+}
+
 void write_handler(struct intr_frame * f) {
   int _fd;
   void * _buf;
@@ -53,7 +68,13 @@ void write_handler(struct intr_frame * f) {
     SYSRETURN(_size);
   } else {
     _fd -= 2;
-    // TODO
-    SYSRETURN(-1);
+    if (_fd < 0 || _fd > MAX_FDS) SYSRETURN(-1);
+
+    struct thread * _thr = thread_current();
+    struct file * _file = _thr->fds[_fd];
+    if (_file == NULL) SYSRETURN(-1);
+
+    _size = file_write(_file, _buf, _size);
+    SYSRETURN(_size);
   }
 }
