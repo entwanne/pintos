@@ -54,8 +54,8 @@ void close_handler(struct intr_frame * f) {
   struct file * _file = _thr->fds[_fd];
   if (_file == NULL) SYSRETURN(-1);
 
-  if (thr->low_fd > _fd)
-    thr->low_fd = _fd;
+  if (_thr->low_fd > _fd)
+    _thr->low_fd = _fd;
 
   file_close(_file);
   SYSRETURN(0);
