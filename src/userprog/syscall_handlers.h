@@ -18,6 +18,6 @@ void write_handler(struct intr_frame * f);
 void read_handler(struct intr_frame * f);
 
 /* syscall_exit.c */
-void syscall_exit(struct intr_frame * f);
+void exit_handler(struct intr_frame * f);
 
 #endif
