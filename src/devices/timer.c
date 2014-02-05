@@ -7,6 +7,9 @@
 #include "threads/io.h"
 #include "threads/synch.h"
 #include "threads/thread.h"
+#include "lib/kernel/list.h"
+#include "threads/malloc.h"
+#include "lib/string.h"
   
 /* See [8254] for hardware details of the 8254 timer chip. */
 
@@ -28,6 +31,15 @@ static intr_handler_func timer_interrupt;
 static bool too_many_loops (unsigned loops);
 static void busy_wait (int64_t loops);
 static void real_time_sleep (int64_t num, int32_t denom);
+
+struct sleeping_thread {
+  struct thread* thread;
+  int64_t start;
+  int64_t duration;
+  struct list_elem elem;
+};
+static struct list sleeping_threads_list;
+static struct lock sleeping_threads_list_lock;
 
 /* Sets up the 8254 Programmable Interval Timer (PIT) to
    interrupt PIT_FREQ times per second, and registers the
@@ -97,10 +109,24 @@ void
 timer_sleep (int64_t ticks) 
 {
   int64_t start = timer_ticks ();
+  enum intr_level old_level;
 
   ASSERT (intr_get_level () == INTR_ON);
-  while (timer_elapsed (start) < ticks) 
-    thread_yield ();
+  struct sleeping_thread* t = malloc(sizeof(*t));
+  if (!t)
+    PANIC("couldn't allocate memory");
+  t->thread = thread_current();
+  t->start = start;
+  t->duration = ticks;
+  /* while (timer_elapsed (start) < ticks)  */
+  /*   thread_yield (); */
+  old_level = intr_disable();
+  lock_acquire(&sleeping_threads_list_lock);
+  list_push_back(&sleeping_threads_list, &t->elem);
+  lock_release(&sleeping_threads_list_lock);
+  thread_block();
+  intr_set_level(old_level);
+  free(t);
 }
 
 /* Suspends execution for approximately MS milliseconds. */
@@ -202,7 +228,29 @@ real_time_sleep (int64_t num, int32_t denom)
     }
 }
 
-void time_scheduler(void *p)
+void time_scheduler_init(void)
 {
-  (void) p;
+  printf("Initializing time scheduler\n");
+  list_init(&sleeping_threads_list);
+  lock_init(&sleeping_threads_list_lock);
+}
+
+void time_scheduler(void)
+{
+  struct list_elem* e;
+  while (1) {
+    for (e = list_begin(&sleeping_threads_list);
+	 e != list_end(&sleeping_threads_list);
+	 e = list_next(e))
+      {
+	struct sleeping_thread *t = list_entry(e, struct sleeping_thread, elem);
+	if (timer_elapsed(t->start) >= t->duration)
+	  {
+	    lock_acquire(&sleeping_threads_list_lock);
+	    list_remove(&t->elem);
+	    lock_release(&sleeping_threads_list_lock);
+	    thread_unblock(t->thread);
+	  }
+      }
+  }
 }

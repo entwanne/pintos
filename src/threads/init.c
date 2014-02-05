@@ -78,6 +78,8 @@ main (void)
   /* Initialize ourselves as a thread so we can use locks,
      then enable console locking. */
   thread_init ();
+  /* thread_create("time scheduler", PRI_DEFAULT, time_scheduler, NULL); */
+  time_scheduler_init();
   console_init ();  
 
   /* Greet user. */
@@ -114,8 +116,6 @@ main (void)
   disk_init ();
   filesys_init (format_filesys);
 #endif
-
-  thread_create("time scheduler", PRI_DEFAULT, time_scheduler, NULL);
 
   printf ("Boot complete.\n");
   

@@ -11,6 +11,7 @@
 #include "threads/switch.h"
 #include "threads/synch.h"
 #include "threads/vaddr.h"
+#include "devices/timer.h"
 #ifdef USERPROG
 #include "userprog/process.h"
 #endif
@@ -369,6 +370,8 @@ idle (void *idle_started_ UNUSED)
 
   for (;;) 
     {
+      time_scheduler();
+
       /* Let someone else run. */
       intr_disable ();
       thread_block ();
