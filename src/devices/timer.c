@@ -202,3 +202,7 @@ real_time_sleep (int64_t num, int32_t denom)
     }
 }
 
+void time_scheduler(void *p)
+{
+  (void) p;
+}

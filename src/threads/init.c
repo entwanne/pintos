@@ -115,6 +115,8 @@ main (void)
   filesys_init (format_filesys);
 #endif
 
+  thread_create("time scheduler", PRI_DEFAULT, time_scheduler, NULL);
+
   printf ("Boot complete.\n");
   
   /* Run actions specified on kernel command line. */
