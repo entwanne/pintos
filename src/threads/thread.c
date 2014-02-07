@@ -370,8 +370,6 @@ idle (void *idle_started_ UNUSED)
 
   for (;;) 
     {
-      time_scheduler();
-
       /* Let someone else run. */
       intr_disable ();
       thread_block ();
@@ -462,6 +460,7 @@ alloc_frame (struct thread *t, size_t size)
 static struct thread *
 next_thread_to_run (void) 
 {
+  time_scheduler();
   if (list_empty (&ready_list))
     return idle_thread;
   else

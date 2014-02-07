@@ -39,7 +39,6 @@ struct sleeping_thread {
   struct list_elem elem;
 };
 static struct list sleeping_threads_list;
-static struct lock sleeping_threads_list_lock;
 
 /* Sets up the 8254 Programmable Interval Timer (PIT) to
    interrupt PIT_FREQ times per second, and registers the
@@ -118,12 +117,8 @@ timer_sleep (int64_t ticks)
   t->thread = thread_current();
   t->start = start;
   t->duration = ticks;
-  /* while (timer_elapsed (start) < ticks)  */
-  /*   thread_yield (); */
   old_level = intr_disable();
-  lock_acquire(&sleeping_threads_list_lock);
   list_push_back(&sleeping_threads_list, &t->elem);
-  lock_release(&sleeping_threads_list_lock);
   thread_block();
   intr_set_level(old_level);
   free(t);
@@ -232,25 +227,20 @@ void time_scheduler_init(void)
 {
   printf("Initializing time scheduler\n");
   list_init(&sleeping_threads_list);
-  lock_init(&sleeping_threads_list_lock);
 }
 
 void time_scheduler(void)
 {
   struct list_elem* e;
-  while (1) {
-    for (e = list_begin(&sleeping_threads_list);
-	 e != list_end(&sleeping_threads_list);
-	 e = list_next(e))
-      {
-	struct sleeping_thread *t = list_entry(e, struct sleeping_thread, elem);
-	if (timer_elapsed(t->start) >= t->duration)
-	  {
-	    lock_acquire(&sleeping_threads_list_lock);
-	    list_remove(&t->elem);
-	    lock_release(&sleeping_threads_list_lock);
-	    thread_unblock(t->thread);
-	  }
-      }
-  }
+  for (e = list_begin(&sleeping_threads_list);
+       e != list_end(&sleeping_threads_list);
+       e = list_next(e))
+    {
+      struct sleeping_thread *t = list_entry(e, struct sleeping_thread, elem);
+      if (timer_elapsed(t->start) >= t->duration)
+	{
+	  list_remove(&t->elem);
+	  thread_unblock(t->thread);
+	}
+    }
 }
