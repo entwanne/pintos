@@ -21,4 +21,8 @@ void read_handler(struct intr_frame * f);
 /* syscall_exit.c */
 void exit_handler(struct intr_frame * f);
 
+/* syscall_proc.c */
+void exec_handler(struct intr_frame * f);
+void wait_handler(struct intr_frame * f);
+
 #endif

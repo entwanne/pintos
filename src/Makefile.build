@@ -59,6 +59,7 @@ userprog_SRC += userprog/tss.c		# TSS management.
 userprog_SRC += userprog/syscall_halt.c
 userprog_SRC += userprog/syscall_io.c
 userprog_SRC += userprog/syscall_exit.c
+userprog_SRC += userprog/syscall_proc.c
 
 # No virtual memory code yet.
 #vm_SRC = vm/file.c			# Some file.

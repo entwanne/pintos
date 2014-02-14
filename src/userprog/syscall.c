@@ -50,8 +50,8 @@ typedef void(*handler_t)(struct intr_frame*);
 static handler_t handlers[] = {
   halt_handler, /* SYS_HALT */
   exit_handler, /* SYS_EXIT */
-  NULL, /* SYS_EXEC */
-  NULL, /* SYS_WAIT */
+  exec_handler, /* SYS_EXEC */
+  wait_handler, /* SYS_WAIT */
   create_handler, /* SYS_CREATE */
   NULL, /* SYS_REMOVE */
   open_handler, /* SYS_OPEN */
