@@ -18,6 +18,7 @@
 #include "threads/thread.h"
 #include "threads/vaddr.h"
 #include "threads/malloc.h"
+#include "userprog/waiter.h"
 
 static thread_func start_process NO_RETURN;
 static bool load (const char *cmdline, void (**eip) (void), void **esp);
@@ -46,6 +47,13 @@ process_execute (const char *file_name)
   return tid;
 }
 
+static void unlock_parent(void)
+{
+  if (launching_process != NULL &&
+      launching_process->parent != NULL)
+    thread_unblock(launching_process->parent);
+}
+
 /* A thread function that loads a user process and starts it
    running. */
 static void
@@ -64,15 +72,23 @@ start_process (void *file_name_)
 
   /* If load failed, quit. */
   palloc_free_page (file_name);
-  if (!success) 
+  if (!success) {
+    unlock_parent();
     thread_exit ();
+  }
 
   struct thread * thr = thread_current();
   thr->fds = malloc(sizeof(void *) * MAX_FDS);
-  if (!thr->fds)
-    thread_exit(); // TODO: liberate above ressources ?
+  if (!thr->fds) {
+    unlock_parent();
+    thread_exit();
+  }
   memset(thr->fds, 0, sizeof(void *) * MAX_FDS);
   thr->low_fd = 0;
+
+  if (launching_process != NULL)
+    launching_process->child = thr;
+  unlock_parent();
 
   /* Start the user process by simulating a return from an
      interrupt, implemented by intr_exit (in
