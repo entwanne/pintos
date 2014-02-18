@@ -22,6 +22,9 @@ TAGS::
 tags::
 	ctags -T --no-warn `$(TAGS_SOURCES)`
 
+ctags::
+	ctags `$(TAGS_SOURCES)`
+
 cscope.files::
 	$(TAGS_SOURCES) > cscope.files
 

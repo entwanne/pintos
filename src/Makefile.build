@@ -60,6 +60,7 @@ userprog_SRC += userprog/pid.c
 userprog_SRC += userprog/syscall_halt.c
 userprog_SRC += userprog/syscall_io.c
 userprog_SRC += userprog/syscall_proc.c
+userprog_SRC += userprog/waiter.c
 
 # No virtual memory code yet.
 #vm_SRC = vm/file.c			# Some file.
