@@ -47,44 +47,11 @@ process_execute (const char *file_name)
   return tid;
 }
 
-void unlock_parent(void)
+static void unlock_parent(void)
 {
   if (launching_process != NULL &&
       launching_process->parent != NULL)
     thread_unblock(launching_process->parent);
-}
-
-struct waiter* find_waiter_by_child(struct thread *thr)
-{
-  struct list_elem* e;
-  for (e = list_begin(&waiters_list);
-       e != list_end(&waiters_list);
-       e = list_next(e))
-    {
-      struct waiter *waiter = list_entry(e, struct waiter, elem);
-      if (waiter->child == thr)
-	return waiter;
-    }
-  return NULL;
-}
-
-struct waiter* find_waiter_by_child_tid(tid_t tid)
-{
-  struct list_elem* e;
-  for (e = list_begin(&waiters_list);
-       e != list_end(&waiters_list);
-       e = list_next(e))
-    {
-      struct waiter *waiter = list_entry(e, struct waiter, elem);
-      if (waiter->child != NULL && waiter->child->tid == tid)
-	return waiter;
-    }
-  return NULL;
-}
-
-struct waiter* find_current_waiter(void)
-{
-  return find_waiter_by_child(thread_current());
 }
 
 /* A thread function that loads a user process and starts it
@@ -121,11 +88,13 @@ start_process (void *file_name_)
 
   if (launching_process != NULL) {
     launching_process->child = thr;
-    lock_aquire(&waiters_lock);
-    list_push_back(&waiters_list, launching_process);
+    lock_acquire(&waiters_lock);
+    list_push_back(&waiters_list, &launching_process->elem);
     lock_release(&waiters_lock);
+    struct thread* parent = launching_process->parent;
     launching_process = NULL;
-    unlock_parent();
+    if (parent != NULL)
+      thread_unblock(parent);
   }
 
   /* Start the user process by simulating a return from an
@@ -152,12 +121,15 @@ process_wait (tid_t child_tid)
 {
   /* while (1) */
   /*   ; */
-  struct waiter* = find_waiter_by_child_tid(child_tid);
-  if (waiter != NULL && waiter->parent == current_thread())
+  struct waiter* waiter = find_waiter_by_child_tid(child_tid);
+  enum intr_level old_level;
+  if (waiter != NULL && waiter->child != NULL && waiter->parent == thread_current())
     {
+      old_level = intr_disable();
       waiter->is_waiting = true;
       thread_block();
       waiter->is_waiting = false;
+      intr_set_level(old_level);
     }
   return -1;
 }

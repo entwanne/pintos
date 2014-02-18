@@ -26,9 +26,13 @@ void exec_handler(struct intr_frame * f) {
   launching_process = malloc(sizeof(*launching_process));
   launching_process->parent = thread_current();
   launching_process->child = NULL;
+  launching_process->is_waiting = false;
+  enum intr_level old_level;
   tid_t _tid;
   _tid = process_execute(_file_name);
+  old_level = intr_disable();
   thread_block();
+  intr_set_level(old_level);
   lock_release(&lock);
 
   if (_tid == TID_ERROR)
