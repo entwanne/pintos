@@ -31,9 +31,6 @@ void exec_handler(struct intr_frame * f) {
   tid_t _tid;
   _tid = process_execute(_file_name);
   thread_block();
-
-  // append launching_process to waiter list
-  launching_process = NULL;
   lock_release(&lock);
 
   if (_tid == TID_ERROR)

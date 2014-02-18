@@ -47,11 +47,44 @@ process_execute (const char *file_name)
   return tid;
 }
 
-static void unlock_parent(void)
+void unlock_parent(void)
 {
   if (launching_process != NULL &&
       launching_process->parent != NULL)
     thread_unblock(launching_process->parent);
+}
+
+struct waiter* find_waiter_by_child(struct thread *thr)
+{
+  struct list_elem* e;
+  for (e = list_begin(&waiters_list);
+       e != list_end(&waiters_list);
+       e = list_next(e))
+    {
+      struct waiter *waiter = list_entry(e, struct waiter, elem);
+      if (waiter->child == thr)
+	return waiter;
+    }
+  return NULL;
+}
+
+struct waiter* find_waiter_by_child_tid(tid_t tid)
+{
+  struct list_elem* e;
+  for (e = list_begin(&waiters_list);
+       e != list_end(&waiters_list);
+       e = list_next(e))
+    {
+      struct waiter *waiter = list_entry(e, struct waiter, elem);
+      if (waiter->child != NULL && waiter->child->tid == tid)
+	return waiter;
+    }
+  return NULL;
+}
+
+struct waiter* find_current_waiter(void)
+{
+  return find_waiter_by_child(thread_current());
 }
 
 /* A thread function that loads a user process and starts it
@@ -86,9 +119,14 @@ start_process (void *file_name_)
   memset(thr->fds, 0, sizeof(void *) * MAX_FDS);
   thr->low_fd = 0;
 
-  if (launching_process != NULL)
+  if (launching_process != NULL) {
     launching_process->child = thr;
-  unlock_parent();
+    lock_aquire(&waiters_lock);
+    list_push_back(&waiters_list, launching_process);
+    lock_release(&waiters_lock);
+    launching_process = NULL;
+    unlock_parent();
+  }
 
   /* Start the user process by simulating a return from an
      interrupt, implemented by intr_exit (in
@@ -110,10 +148,17 @@ start_process (void *file_name_)
    This function will be implemented in problem 2-2.  For now, it
    does nothing. */
 int
-process_wait (tid_t child_tid UNUSED) 
+process_wait (tid_t child_tid) 
 {
-  while (1)
-    ;
+  /* while (1) */
+  /*   ; */
+  struct waiter* = find_waiter_by_child_tid(child_tid);
+  if (waiter != NULL && waiter->parent == current_thread())
+    {
+      waiter->is_waiting = true;
+      thread_block();
+      waiter->is_waiting = false;
+    }
   return -1;
 }
 
@@ -123,6 +168,16 @@ process_exit (void)
 {
   struct thread *cur = thread_current ();
   uint32_t *pd;
+
+  struct waiter* waiter;
+  waiter = find_current_waiter();
+  if (waiter != NULL) {
+    if (waiter->parent != NULL && waiter->is_waiting)
+      thread_unblock(waiter->parent);
+    // decrement reference counter
+    waiter->child = NULL;
+  }
+  // + decrement children waiters' reference counters
 
   if (cur->fds != NULL) {
     int i = 0;
