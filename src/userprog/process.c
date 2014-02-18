@@ -91,8 +91,10 @@ start_process (void *file_name_)
     lock_acquire(&waiters_lock);
     list_push_back(&waiters_list, &launching_process->elem);
     lock_release(&waiters_lock);
+    struct thread* parent = launching_process->parent;
     launching_process = NULL;
-    unlock_parent();
+    if (parent != NULL)
+      thread_unblock(parent);
   }
 
   /* Start the user process by simulating a return from an

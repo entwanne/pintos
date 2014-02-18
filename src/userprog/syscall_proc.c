@@ -28,8 +28,8 @@ void exec_handler(struct intr_frame * f) {
   launching_process->child = NULL;
   enum intr_level old_level;
   tid_t _tid;
-  old_level = intr_disable();
   _tid = process_execute(_file_name);
+  old_level = intr_disable();
   thread_block();
   intr_set_level(old_level);
   lock_release(&lock);
