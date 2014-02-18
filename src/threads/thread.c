@@ -12,6 +12,7 @@
 #include "threads/synch.h"
 #include "threads/vaddr.h"
 #include "devices/timer.h"
+#include "userprog/waiter.h"
 #ifdef USERPROG
 #include "userprog/process.h"
 #endif
@@ -105,6 +106,9 @@ thread_start (void)
   struct semaphore idle_started;
   sema_init (&idle_started, 0);
   thread_create ("idle", PRI_MIN, idle, &idle_started);
+
+  /* Initialize process execution */
+  waiters_init();
 
   /* Start preemptive thread scheduling. */
   intr_enable ();

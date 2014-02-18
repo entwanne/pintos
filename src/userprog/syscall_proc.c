@@ -8,8 +8,6 @@
 #include "userprog/waiter.h"
 #include "threads/malloc.h"
 
-struct waiter* launching_process = NULL;
-
 static void init_exec_lock(struct lock* lock)
 {
   static int done;
