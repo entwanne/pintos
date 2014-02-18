@@ -27,6 +27,7 @@ void exec_handler(struct intr_frame * f) {
   launching_process->parent = thread_current();
   launching_process->child = NULL;
   launching_process->exit_status = -1;
+  sema_init(&launching_process->ref_counter, 2);
   launching_process->is_waiting = false;
   enum intr_level old_level;
   tid_t _tid;

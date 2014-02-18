@@ -120,20 +120,26 @@ start_process (void *file_name_)
 int
 process_wait (tid_t child_tid) 
 {
-  /* while (1) */
-  /*   ; */
+  int exit_status = -1;
   struct waiter* waiter = find_waiter_by_child_tid(child_tid);
   enum intr_level old_level;
-  if (waiter != NULL && waiter->child != NULL && waiter->parent == thread_current())
-    {
-      old_level = intr_disable();
-      waiter->is_waiting = true;
-      thread_block();
-      waiter->is_waiting = false;
-      intr_set_level(old_level);
-      return waiter->exit_status;
-    }
-  return -1;
+
+  if (waiter != NULL && waiter->parent == thread_current()) {
+    // ref_counter > 1 <=> child exited
+    /* if (waiter->child != NULL && waiter->ref_counter.value > 1) */
+    if (waiter->child != NULL)
+      {
+	old_level = intr_disable();
+	waiter->is_waiting = true;
+	thread_block();
+	waiter->is_waiting = false;
+	intr_set_level(old_level);
+      }
+    exit_status = waiter->exit_status;
+    // Decrement reference counter
+    release_waiter(waiter);
+  }
+  return exit_status;
 }
 
 /* Free the current process's resources. */
@@ -142,17 +148,32 @@ process_exit (void)
 {
   struct thread *cur = thread_current ();
   uint32_t *pd;
-
   struct waiter* waiter;
+
+  // parent waiter
   waiter = find_current_waiter();
   if (waiter != NULL) {
     waiter->exit_status = cur->exit_status;
     if (waiter->parent != NULL && waiter->is_waiting)
       thread_unblock(waiter->parent);
-    // decrement reference counter
-    waiter->child = NULL;
+    // Decrement reference counter
+    release_waiter(waiter);
   }
-  // + decrement children waiters' reference counters
+
+  // children waiters
+  struct list_elem* e;
+  for (e = list_begin(&waiters_list);
+       e != list_end(&waiters_list);
+       e = list_next(e))
+    {
+      lock_acquire(&waiters_lock);
+      waiter = list_entry(e, struct waiter, elem);
+      lock_release(&waiters_lock);
+      if (waiter != NULL && waiter->parent == thread_current()
+	  && waiter->ref_counter.value > 0)
+	// Decrement reference counter (decrement only if no wait)
+  	release_waiter(waiter);
+    }
 
   if (cur->fds != NULL) {
     int i = 0;
