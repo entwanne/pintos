@@ -97,6 +97,7 @@ struct thread
     uint32_t *pagedir;                  /* Page directory. */
     struct file ** fds;
     int low_fd;
+    int exit_status;
 #endif
 
     /* Owned by thread.c. */

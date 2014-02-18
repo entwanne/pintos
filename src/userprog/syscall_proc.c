@@ -57,7 +57,8 @@ void wait_handler(struct intr_frame * f) {
 void exit_handler(struct intr_frame *f) {
   int _code;
   extract_params(f, "i", &_code);
-  (void)_code;
+  struct thread * thr = thread_current();
+  thr->exit_status = _code;
 
   thread_exit();
 }
