@@ -100,7 +100,6 @@ void read_handler(struct intr_frame *f) {
     size_t i;
     for (i = 0; i < _size; ++i) {
       c = input_getc();
-      putbuf(&c, 1);
       ((uint8_t*) _buf)[i] = c;
     }
     SYSRETURN(i);
