@@ -10,6 +10,7 @@ struct waiter {
   struct thread* parent;
   struct thread* child;
   // + ref_counter, status_code
+  int exit_status;
   bool is_waiting;
   struct list_elem elem;
 };

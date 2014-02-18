@@ -85,6 +85,7 @@ start_process (void *file_name_)
   }
   memset(thr->fds, 0, sizeof(void *) * MAX_FDS);
   thr->low_fd = 0;
+  thr->exit_status = -1;
 
   if (launching_process != NULL) {
     launching_process->child = thr;
@@ -130,6 +131,7 @@ process_wait (tid_t child_tid)
       thread_block();
       waiter->is_waiting = false;
       intr_set_level(old_level);
+      return waiter->exit_status;
     }
   return -1;
 }
@@ -144,6 +146,7 @@ process_exit (void)
   struct waiter* waiter;
   waiter = find_current_waiter();
   if (waiter != NULL) {
+    waiter->exit_status = cur->exit_status;
     if (waiter->parent != NULL && waiter->is_waiting)
       thread_unblock(waiter->parent);
     // decrement reference counter
