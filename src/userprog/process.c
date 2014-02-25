@@ -88,12 +88,13 @@ start_process (void *file_name_)
   thr->exit_status = -1;
 
   if (launching_process != NULL) {
-    launching_process->child = thr;
+    launching_process->child_tid = thr->tid;
     lock_acquire(&waiters_lock);
     list_push_back(&waiters_list, &launching_process->elem);
     lock_release(&waiters_lock);
     struct thread* parent = launching_process->parent;
     launching_process = NULL;
+    launching_process_loaded = true;
     if (parent != NULL)
       thread_unblock(parent);
   }
@@ -122,22 +123,17 @@ process_wait (tid_t child_tid)
 {
   int exit_status = -1;
   struct waiter* waiter = find_waiter_by_child_tid(child_tid);
-  enum intr_level old_level;
 
   if (waiter != NULL && waiter->parent == thread_current()) {
-    // ref_counter > 1 <=> child exited
-    /* if (waiter->child != NULL && waiter->ref_counter.value > 1) */
-    if (waiter->child != NULL)
+    if (waiter->child_tid != TID_ERROR)
       {
-	old_level = intr_disable();
-	waiter->is_waiting = true;
-	thread_block();
-	waiter->is_waiting = false;
-	intr_set_level(old_level);
+	// if child is alive, sema contains 0
+	// so wait until sema contains 1 (child exit)
+	sema_down(&waiter->ref_counter);
+	sema_up(&waiter->ref_counter);
       }
     exit_status = waiter->exit_status;
-    // Decrement reference counter
-    release_waiter(waiter);
+    release_waiter(waiter, true);
   }
   return exit_status;
 }
@@ -154,26 +150,21 @@ process_exit (void)
   waiter = find_current_waiter();
   if (waiter != NULL) {
     waiter->exit_status = cur->exit_status;
-    if (waiter->parent != NULL && waiter->is_waiting)
-      thread_unblock(waiter->parent);
-    // Decrement reference counter
-    release_waiter(waiter);
+    release_waiter(waiter, true);
   }
 
   // children waiters
   struct list_elem* e;
+  lock_acquire(&waiters_lock);
   for (e = list_begin(&waiters_list);
-       e != list_end(&waiters_list);
-       e = list_next(e))
+       e != list_end(&waiters_list);)
     {
-      lock_acquire(&waiters_lock);
       waiter = list_entry(e, struct waiter, elem);
-      lock_release(&waiters_lock);
-      if (waiter != NULL && waiter->parent == thread_current()
-	  && waiter->ref_counter.value > 0)
-	// Decrement reference counter (decrement only if no wait)
-  	release_waiter(waiter);
+      e = list_next(e);
+      if (waiter != NULL && waiter->parent == thread_current())
+	release_waiter(waiter, false);
     }
+  lock_release(&waiters_lock);
 
   if (cur->fds != NULL) {
     int i = 0;

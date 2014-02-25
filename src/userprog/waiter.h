@@ -8,14 +8,14 @@
 
 struct waiter {
   struct thread* parent;
-  struct thread* child;
+  tid_t child_tid;
   int exit_status;
   struct semaphore ref_counter;
-  bool is_waiting;
   struct list_elem elem;
 };
 
 extern struct waiter* launching_process;
+extern bool launching_process_loaded;
 
 extern struct list waiters_list;
 extern struct lock waiters_lock;
@@ -28,6 +28,6 @@ struct waiter* find_waiter_by_child(struct thread *thr);
 struct waiter* find_waiter_by_child_tid(tid_t tid);
 struct waiter* find_current_waiter(void);
 
-void release_waiter(struct waiter*);
+void release_waiter(struct waiter* waiter, bool lock);
 
 #endif
