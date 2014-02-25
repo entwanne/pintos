@@ -30,15 +30,18 @@ void exec_handler(struct intr_frame * f) {
   launching_process->exit_status = -1;
   sema_init(&launching_process->ref_counter, 0);
   enum intr_level old_level;
-  tid_t _tid;
-  _tid = process_execute(_file_name);
-  old_level = intr_disable();
-  thread_block();
-  intr_set_level(old_level);
-  if (!launching_process_loaded) {
-    free(launching_process);
-    _tid = TID_ERROR;
+  tid_t _tid = process_execute(_file_name);
+
+  if (_tid != TID_ERROR) {
+    old_level = intr_disable();
+    thread_block();
+    intr_set_level(old_level);
+    if (!launching_process_loaded) {
+      free(launching_process);
+      _tid = TID_ERROR;
+    }
   }
+
   lock_release(&lock);
 
   if (_tid == TID_ERROR)
