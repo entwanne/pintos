@@ -7,7 +7,8 @@
 #include "threads/synch.h"
 
 struct waiter {
-  struct thread* parent;
+  /* struct thread* parent; */
+  tid_t parent_tid;
   tid_t child_tid;
   int exit_status;
   struct semaphore ref_counter;

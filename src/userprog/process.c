@@ -55,7 +55,7 @@ process_execute (const char *file_name)
   lock_acquire(&lock);
   launching_process_loaded = false;
   launching_process = malloc(sizeof(*launching_process));
-  launching_process->parent = thread_current();
+  launching_process->parent_tid = thread_current()->tid;
   launching_process->child_tid = TID_ERROR;
   launching_process->exit_status = -1;
   sema_init(&launching_process->ref_counter, 0);
@@ -65,16 +65,14 @@ process_execute (const char *file_name)
   if (tid == TID_ERROR)
     palloc_free_page (fn_copy);
   else {
-    enum intr_level old_level;
-    old_level = intr_disable();
-    thread_block();
-    intr_set_level(old_level);
+    sema_down(&launching_process->ref_counter);
     if (!launching_process_loaded) {
       free(launching_process);
       tid = TID_ERROR;
     }
   }
 
+  launching_process = NULL;
   lock_release(&lock);
 
   return tid;
@@ -82,9 +80,8 @@ process_execute (const char *file_name)
 
 static void unlock_parent(void)
 {
-  if (launching_process != NULL &&
-      launching_process->parent != NULL)
-    thread_unblock(launching_process->parent);
+  if (launching_process != NULL)
+    sema_up(&launching_process->ref_counter);
 }
 
 #define STACK_PUSH(type, value) { \
@@ -186,11 +183,8 @@ start_process (void *file_name_)
     lock_acquire(&waiters_lock);
     list_push_back(&waiters_list, &launching_process->elem);
     lock_release(&waiters_lock);
-    struct thread* parent = launching_process->parent;
-    launching_process = NULL;
     launching_process_loaded = true;
-    if (parent != NULL)
-      thread_unblock(parent);
+    unlock_parent();
   }
 
   /* Start the user process by simulating a return from an
@@ -218,7 +212,7 @@ process_wait (tid_t child_tid)
   int exit_status = -1;
   struct waiter* waiter = find_waiter_by_child_tid(child_tid);
 
-  if (waiter != NULL && waiter->parent == thread_current()) {
+  if (waiter != NULL && waiter->parent_tid == thread_current()->tid) {
     if (waiter->child_tid != TID_ERROR)
       {
 	// if child is alive, sema contains 0
@@ -255,7 +249,7 @@ process_exit (void)
     {
       waiter = list_entry(e, struct waiter, elem);
       e = list_next(e);
-      if (waiter != NULL && waiter->parent == thread_current())
+      if (waiter != NULL && waiter->parent_tid == thread_current()->tid)
 	release_waiter(waiter, false);
     }
   lock_release(&waiters_lock);
