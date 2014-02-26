@@ -142,9 +142,12 @@ start_process (void *file_name_)
     ++argc;
   }
 
+  // argv[0]
+  STACK_PUSH(char *, command);
+
   // We push argv
   /* do */ {
-    char ** argv = (char **)(if_.esp);
+    char ** argv = (char **)(if_.esp) + 1;
 
     {
       int i = 0;
