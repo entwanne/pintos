@@ -23,6 +23,15 @@
 static thread_func start_process NO_RETURN;
 static bool load (const char *cmdline, void (**eip) (void), void **esp);
 
+static void init_exec_lock(struct lock* lock)
+{
+  static int done;
+  if (!done)
+    lock_init(lock);
+  done = 1;
+}
+
+
 /* Starts a new thread running a user program loaded from
    FILENAME.  The new thread may be scheduled (and may even exit)
    before process_execute() returns.  Returns the new process's
@@ -32,6 +41,9 @@ process_execute (const char *file_name)
 {
   char *fn_copy;
   tid_t tid;
+  static struct lock lock;
+
+  init_exec_lock(&lock);
 
   /* Make a copy of FILE_NAME.
      Otherwise there's a race between the caller and load(). */
@@ -40,10 +52,31 @@ process_execute (const char *file_name)
     return TID_ERROR;
   strlcpy (fn_copy, file_name, PGSIZE);
 
+  lock_acquire(&lock);
+  launching_process_loaded = false;
+  launching_process = malloc(sizeof(*launching_process));
+  launching_process->parent = thread_current();
+  launching_process->child_tid = TID_ERROR;
+  launching_process->exit_status = -1;
+  sema_init(&launching_process->ref_counter, 0);
+
   /* Create a new thread to execute FILE_NAME. */
   tid = thread_create (file_name, PRI_DEFAULT, start_process, fn_copy);
   if (tid == TID_ERROR)
-    palloc_free_page (fn_copy); 
+    palloc_free_page (fn_copy);
+  else {
+    enum intr_level old_level;
+    old_level = intr_disable();
+    thread_block();
+    intr_set_level(old_level);
+    if (!launching_process_loaded) {
+      free(launching_process);
+      tid = TID_ERROR;
+    }
+  }
+
+  lock_release(&lock);
+
   return tid;
 }
 
