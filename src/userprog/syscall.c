@@ -15,29 +15,52 @@ syscall_init (void)
   intr_register_int (0x30, 3, INTR_ON, syscall_handler, "syscall");
 }
 
+#define POP_STACK_PARAM(esp, type, dest) {\
+    dest = *((type*)(esp));		  \
+    (esp) += sizeof(type);		  \
+  }
 
-#define GET_PARAM(ap, esp, type) *va_arg((ap), type*) = *((type*)(esp)); \
-  (esp) += sizeof(type)
+#define ARG_PARAM(ap, type) *va_arg((ap), type*)
 
-#define CHECK_PTR(esp) if (!is_user_vaddr(*(void**)(esp))) {} // SEGV
+#define EXTRACT_PARAM(ap, esp, type) POP_STACK_PARAM(esp, type, ARG_PARAM(ap, type))
+
+static void check_str(const char *str) {
+  if (!is_user_vaddr(str))
+    {} // SEGV
+}
+
+static void check_ptr(const void *p, size_t size) {
+  if (!is_user_vaddr(p))
+    {} // SEGV
+}
 
 void extract_params(struct intr_frame* f, const char* format, ...)
 {
   va_list ap;
   va_start(ap, format);
   char *esp = (char*) f->esp + sizeof(int);
+  char *str;
+  void *buff;
+  unsigned int size;
   while (format && *format) {
     switch (*format) {
-    case 'i':
-      GET_PARAM(ap, esp, int);
+    case 'i': // int
+      EXTRACT_PARAM(ap, esp, int);
       break;
-    case 'u':
-      GET_PARAM(ap, esp, unsigned int);
+    case 'u': // unsigned int
+      EXTRACT_PARAM(ap, esp, unsigned int);
       break;
-    case 'p':
-    case 's':
-      CHECK_PTR(esp);
-      GET_PARAM(ap, esp, void*);
+    case 's': // string (char*)
+      POP_STACK_PARAM(esp, char*, str);
+      check_str(str);
+      ARG_PARAM(ap, void*) = str;
+      break;
+    case 'b': // buffer (void* + size_t)
+      POP_STACK_PARAM(esp, void*, buff);
+      POP_STACK_PARAM(esp, size_t, size);
+      check_ptr(buff, size);
+      ARG_PARAM(ap, void*) = buff;
+      ARG_PARAM(ap, size_t) = size;
       break;
     }
     format++;

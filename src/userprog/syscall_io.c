@@ -68,7 +68,7 @@ void write_handler(struct intr_frame * f) {
   int _fd;
   void * _buf;
   size_t _size;
-  extract_params(f, "ipu", &_fd, &_buf, &_size);
+  extract_params(f, "ib", &_fd, &_buf, &_size);
 
   if (_fd == STDIN_FILENO) SYSRETURN(-1) // No write to stdin
   if (_fd == STDOUT_FILENO) {
@@ -91,7 +91,7 @@ void read_handler(struct intr_frame *f) {
   int _fd;
   void * _buf;
   size_t _size;
-  extract_params(f, "ipu", &_fd, &_buf, &_size);
+  extract_params(f, "ib", &_fd, &_buf, &_size);
 
   if (_fd < 0 || _fd >= MAX_FDS) SYSRETURN(-1);
   if (_fd == STDOUT_FILENO) SYSRETURN(-1); // No read from stdout
