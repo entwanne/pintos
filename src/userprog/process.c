@@ -54,6 +54,11 @@ static void unlock_parent(void)
     thread_unblock(launching_process->parent);
 }
 
+#define STACK_PUSH(type, value) { \
+	if_.esp -= sizeof(type); \
+	*(type *)(if_.esp) = value; \
+}
+
 /* A thread function that loads a user process and starts it
    running. */
 static void
@@ -63,19 +68,72 @@ start_process (void *file_name_)
   struct intr_frame if_;
   bool success;
 
+  size_t cmdlen = strlen(file_name) + 1;
+  char * file_real_name, * strtok_v;
+  file_real_name = strtok_r(file_name, " \t", &strtok_v);
+
   /* Initialize interrupt frame and load executable. */
   memset (&if_, 0, sizeof if_);
   if_.gs = if_.fs = if_.es = if_.ds = if_.ss = SEL_UDSEG;
   if_.cs = SEL_UCSEG;
   if_.eflags = FLAG_IF | FLAG_MBS;
-  success = load (file_name, &if_.eip, &if_.esp);
+  success = load (file_real_name, &if_.eip, &if_.esp);
 
   /* If load failed, quit. */
-  palloc_free_page (file_name);
   if (!success) {
+    palloc_free_page (file_name);
     unlock_parent();
     thread_exit ();
   }
+
+  // Copy all parameters to stack
+  // Copy the exact command string, first
+  if_.esp -= cmdlen;
+  char * command = (char *)if_.esp;
+  memcpy(if_.esp, file_name, cmdlen);
+
+  // We align a bit
+  if (cmdlen % 4 != 0)
+    if_.esp -= 4 - cmdlen % 4;
+
+
+  // We push argv[argc], always NULL
+  STACK_PUSH(char *, NULL);
+
+  strtok_v = command + (strtok_v - file_name);
+  int argc = 0;
+  char * argv = NULL;
+  while ((argv = strtok_r(NULL, " \t", &strtok_v)) != NULL)
+  {
+    STACK_PUSH(char *, argv);
+    ++argc;
+  }
+
+  // We push argv
+  /* do */ {
+    char ** argv = (char **)(if_.esp);
+
+    {
+      int i = 0;
+      while (i < argc / 2) {
+        char * t = argv[i];
+	argv[i] = argv[argc - i - 1];
+	argv[argc - i - 1] = t;
+
+	++i;
+      }
+    }
+
+    STACK_PUSH(char **, argv - 1);
+  }
+
+  // We push argc
+  STACK_PUSH(int, argc + 1);
+
+  // We push return address
+  STACK_PUSH(void *, NULL);
+
+  palloc_free_page (file_name);
 
   struct thread * thr = thread_current();
   thr->fds = malloc(sizeof(void *) * MAX_FDS);
@@ -556,7 +614,7 @@ setup_stack (void **esp)
     {
       success = install_page (((uint8_t *) PHYS_BASE) - PGSIZE, kpage, true);
       if (success)
-        *esp = PHYS_BASE - 12;
+        *esp = PHYS_BASE;
       else
         palloc_free_page (kpage);
     }

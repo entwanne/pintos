@@ -18,9 +18,9 @@ static void init_exec_lock(struct lock* lock)
 
 void exec_handler(struct intr_frame * f) {
   static struct lock lock;
-  char * _file_name;
+  char * _command;
   init_exec_lock(&lock);
-  extract_params(f, "s", &_file_name);
+  extract_params(f, "s", &_command);
 
   lock_acquire(&lock);
   launching_process_loaded = false;
@@ -30,7 +30,7 @@ void exec_handler(struct intr_frame * f) {
   launching_process->exit_status = -1;
   sema_init(&launching_process->ref_counter, 0);
   enum intr_level old_level;
-  tid_t _tid = process_execute(_file_name);
+  tid_t _tid = process_execute(_command);
 
   if (_tid != TID_ERROR) {
     old_level = intr_disable();
