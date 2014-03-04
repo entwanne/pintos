@@ -31,30 +31,30 @@ syscall_init (void)
 }
 
 #define CHECK_ESP(esp) \
-	if (esp == NULL || !is_user_vaddr(esp) || pagedir_get_page(thread_current()->pagedir, esp) == NULL) \
-		CRASH;
+  if (esp == NULL || !is_user_vaddr(esp) || pagedir_get_page(thread_current()->pagedir, esp) == NULL) \
+    CRASH;
 
 static void check_ptr(const char *p, size_t size) {
-	if (p == NULL) CRASH;
-	while(size > 0) {
-		if (!is_user_vaddr(p))
-			CRASH;
-		if (pagedir_get_page(thread_current()->pagedir, p) == NULL)
-			CRASH;
-		++p;
-		--size;
-	}
+  if (p == NULL) CRASH;
+  while(size > 0) {
+    if (!is_user_vaddr(p))
+      CRASH;
+    if (pagedir_get_page(thread_current()->pagedir, p) == NULL)
+      CRASH;
+    ++p;
+    --size;
+  }
 }
 
 static void check_str(const char *s) {
-	if (s == NULL) CRASH;
-	do {
-		if (!is_user_vaddr(s))
-			CRASH;
-		if (pagedir_get_page(thread_current()->pagedir, s) == NULL)
-			CRASH;
-		++s;
-	} while(*s);
+  if (s == NULL) CRASH;
+  do {
+    if (!is_user_vaddr(s))
+      CRASH;
+    if (pagedir_get_page(thread_current()->pagedir, s) == NULL)
+      CRASH;
+    ++s;
+  } while(*s);
 }
 
 void extract_params(struct intr_frame* f, const char* format, ...)
