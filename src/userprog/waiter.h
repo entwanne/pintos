@@ -11,6 +11,7 @@ struct waiter {
   tid_t parent_tid;
   tid_t child_tid;
   int exit_status;
+  struct semaphore started;
   struct semaphore ref_counter;
   struct list_elem elem;
 };

@@ -58,6 +58,7 @@ process_execute (const char *file_name)
   launching_process->parent_tid = thread_current()->tid;
   launching_process->child_tid = TID_ERROR;
   launching_process->exit_status = -1;
+  sema_init(&launching_process->started, 0);
   sema_init(&launching_process->ref_counter, 0);
 
   size_t sp_pos = strcspn(file_name, " \t");
@@ -71,7 +72,7 @@ process_execute (const char *file_name)
   if (tid == TID_ERROR)
     palloc_free_page (fn_copy);
   else {
-    sema_down(&launching_process->ref_counter);
+    sema_down(&launching_process->started);
     if (!launching_process_loaded) {
       free(launching_process);
       tid = TID_ERROR;
@@ -87,7 +88,7 @@ process_execute (const char *file_name)
 static void unlock_parent(void)
 {
   if (launching_process != NULL)
-    sema_up(&launching_process->ref_counter);
+    sema_up(&launching_process->started);
 }
 
 #define STACK_PUSH(type, value) { \
