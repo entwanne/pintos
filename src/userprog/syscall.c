@@ -6,6 +6,7 @@
 #include "threads/vaddr.h"
 #include "filesys/filesys.h"
 #include "userprog/syscall_handlers.h"
+#include "userprog/pagedir.h"
 
 static void syscall_handler (struct intr_frame *);
 
@@ -24,16 +25,36 @@ syscall_init (void)
 
 #define EXTRACT_PARAM(ap, esp, type) POP_STACK_PARAM(esp, type, ARG_PARAM(ap, type))
 
+#define CRASH { \
+      thread_current()->exit_status = -1; \
+      thread_exit(); \
+}
+
+#define CHECK_ESP(esp) \
+	if (esp == NULL || !is_user_vaddr(esp) || pagedir_get_page(thread_current()->pagedir, esp) == NULL) \
+		CRASH;
+
 static void check_ptr(const char *p, size_t size) {
-  if (p == NULL || !is_user_vaddr(p + size))
-    {
-      thread_current()->exit_status = -1;
-      thread_exit();
-    } // SEGV
+	if (p == NULL) CRASH;
+	while(size > 0) {
+		if (!is_user_vaddr(p))
+			CRASH;
+		if (pagedir_get_page(thread_current()->pagedir, p) == NULL)
+			CRASH;
+		++p;
+		--size;
+	}
 }
 
 static void check_str(const char *s) {
-	check_ptr(s, 0);
+	if (s == NULL) CRASH;
+	do {
+		if (!is_user_vaddr(s))
+			CRASH;
+		if (pagedir_get_page(thread_current()->pagedir, s) == NULL)
+			CRASH;
+		++s;
+	} while(*s);
 }
 
 void extract_params(struct intr_frame* f, const char* format, ...)
@@ -45,6 +66,7 @@ void extract_params(struct intr_frame* f, const char* format, ...)
   void *buff;
   unsigned int size;
   while (format && *format) {
+	  CHECK_ESP(esp);
     switch (*format) {
     case 'i': // int
       EXTRACT_PARAM(ap, esp, int);
@@ -99,6 +121,7 @@ static size_t nb_handlers = sizeof(handlers) / sizeof(handler_t);
 static void
 syscall_handler (struct intr_frame *f) 
 {
+	CHECK_ESP(f->esp);
   unsigned int syscall = *((unsigned int*)f->esp);
   if (syscall < nb_handlers && handlers[syscall])
     handlers[syscall](f);

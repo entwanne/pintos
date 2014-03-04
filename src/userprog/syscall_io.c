@@ -70,6 +70,7 @@ void write_handler(struct intr_frame * f) {
 
   if (_fd == STDIN_FILENO) SYSRETURN(-1); // No write to stdin
   if (_fd == STDOUT_FILENO) {
+    if (_size == 0) SYSRETURN(0);
     putbuf((char const *)_buf, _size);
     SYSRETURN(_size);
   } else {
@@ -79,6 +80,7 @@ void write_handler(struct intr_frame * f) {
     struct thread * _thr = thread_current();
     struct file * _file = _thr->fds[_fd];
     if (_file == NULL) SYSRETURN(-1);
+    if (_size == 0) SYSRETURN(0);
 
     _size = file_write(_file, _buf, _size);
     SYSRETURN(_size);
@@ -94,6 +96,7 @@ void read_handler(struct intr_frame *f) {
   if (_fd < 0 || _fd >= MAX_FDS) SYSRETURN(-1);
   if (_fd == STDOUT_FILENO) SYSRETURN(-1); // No read from stdout
   if (_fd == STDIN_FILENO) {
+    if (_size == 0) SYSRETURN(0);
     uint8_t c;
     size_t i;
     for (i = 0; i < _size; ++i) {
@@ -107,6 +110,7 @@ void read_handler(struct intr_frame *f) {
     _fd -= 2;
     _file = thr->fds[_fd];
     if (_file == NULL) SYSRETURN(-1);
+    if (_size == 0) SYSRETURN(0);
     _size = file_read(_file, _buf, _size);
     SYSRETURN(_size);
   }
