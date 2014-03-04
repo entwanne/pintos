@@ -234,6 +234,8 @@ process_exit (void)
   uint32_t *pd;
   struct waiter* waiter;
 
+  printf("%s: exit(%d)\n", cur->name, cur->exit_status);
+
   // parent waiter
   waiter = find_current_waiter();
   if (waiter != NULL) {
