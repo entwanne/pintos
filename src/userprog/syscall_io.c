@@ -19,14 +19,12 @@ void create_handler(struct intr_frame *f)
   unsigned int size;
   extract_params(f, "su", &filename, &size);
   bool ret = filesys_create(filename, size);
-  SYSRETURN(!ret);
+  SYSRETURN(ret);
 }
 
 void open_handler(struct intr_frame * f) {
   char const * _fname;
   extract_params(f, "s", &_fname);
-
-  if (_fname == NULL) SYSRETURN(-1);
 
   struct thread * thr = thread_current();
   int _fd = thr->low_fd;
@@ -70,7 +68,7 @@ void write_handler(struct intr_frame * f) {
   size_t _size;
   extract_params(f, "ib", &_fd, &_buf, &_size);
 
-  if (_fd == STDIN_FILENO) SYSRETURN(-1) // No write to stdin
+  if (_fd == STDIN_FILENO) SYSRETURN(-1); // No write to stdin
   if (_fd == STDOUT_FILENO) {
     putbuf((char const *)_buf, _size);
     SYSRETURN(_size);

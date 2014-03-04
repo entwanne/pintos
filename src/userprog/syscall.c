@@ -24,14 +24,16 @@ syscall_init (void)
 
 #define EXTRACT_PARAM(ap, esp, type) POP_STACK_PARAM(esp, type, ARG_PARAM(ap, type))
 
-static void check_str(const char *str) {
-  if (!is_user_vaddr(str))
-    {} // SEGV
+static void check_ptr(const char *p, size_t size) {
+  if (p == NULL || !is_user_vaddr(p + size))
+    {
+      thread_current()->exit_status = -1;
+      thread_exit();
+    } // SEGV
 }
 
-static void check_ptr(const void *p, size_t size) {
-  if (!is_user_vaddr(p))
-    {} // SEGV
+static void check_str(const char *s) {
+	check_ptr(s, 0);
 }
 
 void extract_params(struct intr_frame* f, const char* format, ...)
