@@ -69,9 +69,10 @@ process_execute (const char *file_name)
   /* Create a new thread to execute FILE_NAME. */
   tid = thread_create (file_real_name, PRI_DEFAULT, start_process, fn_copy);
   free(file_real_name);
-  if (tid == TID_ERROR)
+  if (tid == TID_ERROR) {
     palloc_free_page (fn_copy);
-  else {
+    free(launching_process);
+  } else {
     sema_down(&launching_process->started);
     if (!launching_process_loaded) {
       free(launching_process);
@@ -115,6 +116,8 @@ start_process (void *file_name_)
   if_.cs = SEL_UCSEG;
   if_.eflags = FLAG_IF | FLAG_MBS;
   success = load (file_real_name, &if_.eip, &if_.esp);
+  struct thread * thr = thread_current();
+  thr->exit_status = -1;
 
   /* If load failed, quit. */
   if (!success) {
@@ -175,7 +178,6 @@ start_process (void *file_name_)
 
   palloc_free_page (file_name);
 
-  struct thread * thr = thread_current();
   thr->fds = malloc(sizeof(void *) * MAX_FDS);
   if (!thr->fds) {
     unlock_parent();
@@ -183,7 +185,6 @@ start_process (void *file_name_)
   }
   memset(thr->fds, 0, sizeof(void *) * MAX_FDS);
   thr->low_fd = 0;
-  thr->exit_status = -1;
 
   if (launching_process != NULL) {
     launching_process->child_tid = thr->tid;
