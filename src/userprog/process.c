@@ -60,8 +60,14 @@ process_execute (const char *file_name)
   launching_process->exit_status = -1;
   sema_init(&launching_process->ref_counter, 0);
 
+  size_t sp_pos = strcspn(file_name, " \t");
+  char * file_real_name = malloc(sp_pos + 1);
+  file_real_name[sp_pos] = 0;
+  memcpy(file_real_name, file_name, sp_pos);
+
   /* Create a new thread to execute FILE_NAME. */
-  tid = thread_create (file_name, PRI_DEFAULT, start_process, fn_copy);
+  tid = thread_create (file_real_name, PRI_DEFAULT, start_process, fn_copy);
+  free(file_real_name);
   if (tid == TID_ERROR)
     palloc_free_page (fn_copy);
   else {
