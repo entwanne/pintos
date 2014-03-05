@@ -15,7 +15,7 @@
 
 static inline bool is_valid_fd(int fd)
 {
-  return (fd >= 0 && fd < MAX_FDS);
+  return (fd >= 0 && fd < MAX_FDS + 2);
 }
 
 static struct file* file_of_fd(int fd)
@@ -51,14 +51,13 @@ void open_handler(struct intr_frame * f) {
   struct thread * thr = thread_current();
   int _fd = thr->low_fd;
 
-  while (thr->fds[_fd] && _fd < MAX_FDS - 2)
+  while (thr->fds[_fd] && _fd < MAX_FDS)
     ++_fd;
-  if (_fd == MAX_FDS - 2) SYSRETURN(-1);
+  if (_fd == MAX_FDS) SYSRETURN(-1);
 
   struct file * _file;
   _file = filesys_open(_fname);
-  if (_file == NULL)
-    SYSRETURN(-1);
+  if (_file == NULL) SYSRETURN(-1);
 
   thr->fds[_fd] = _file;
   thr->low_fd++;
@@ -73,11 +72,12 @@ void close_handler(struct intr_frame * f) {
   if (_file == NULL) SYSRETURN(-1);
 
   struct thread * _thr = thread_current();
+  _fd -= 2;
   if (_thr->low_fd > _fd)
     _thr->low_fd = _fd;
 
   file_close(_file);
-  _thr->fds[_fd - 2] = NULL;
+  _thr->fds[_fd] = NULL;
   SYSRETURN(0);
 }
 
