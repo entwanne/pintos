@@ -13,10 +13,14 @@ void halt_handler(struct intr_frame *f);
 
 /* syscall_io.c */
 void create_handler(struct intr_frame * f);
+void remove_handler(struct intr_frame * f);
 void open_handler(struct intr_frame * f);
 void close_handler(struct intr_frame * f);
 void write_handler(struct intr_frame * f);
 void read_handler(struct intr_frame * f);
+void seek_handler(struct intr_frame * f);
+void tell_handler(struct intr_frame * f);
+void filesize_handler(struct intr_frame * f);
 
 /* syscall_exit.c */
 void exit_handler(struct intr_frame * f);

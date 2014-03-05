@@ -100,13 +100,13 @@ static handler_t handlers[] = {
   exec_handler, /* SYS_EXEC */
   wait_handler, /* SYS_WAIT */
   create_handler, /* SYS_CREATE */
-  NULL, /* SYS_REMOVE */
+  remove_handler, /* SYS_REMOVE */
   open_handler, /* SYS_OPEN */
-  NULL, /* SYS_FILESIZE */
+  filesize_handler, /* SYS_FILESIZE */
   read_handler, /* SYS_READ */
   write_handler, /* SYS_WRITE */
-  NULL, /* SYS_SEEK */
-  NULL, /* SYS_TELL */
+  seek_handler, /* SYS_SEEK */
+  tell_handler, /* SYS_TELL */
   close_handler, /* SYS_CLOSE */
   NULL, /* SYS_MMAP */
   NULL, /* SYS_MUNMAP */
