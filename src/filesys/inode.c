@@ -131,6 +131,10 @@ inode_open (disk_sector_t sector)
        e = list_next (e)) 
     {
       inode = list_entry (e, struct inode, elem);
+      if (inode->removed) {
+          sema_up(&open_inodes_lock);
+          return NULL;
+      }
       if (inode->sector == sector) 
         {
           inode_reopen (inode);
